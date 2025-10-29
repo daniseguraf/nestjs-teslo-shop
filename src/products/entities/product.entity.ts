@@ -1,7 +1,20 @@
-import { BeforeInsert, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import {
+  BeforeInsert,
+  BeforeUpdate,
+  Column,
+  Entity,
+  PrimaryGeneratedColumn,
+  Repository,
+} from 'typeorm';
 
 @Entity()
 export class Product {
+  constructor(
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+  ) {}
+
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -26,12 +39,23 @@ export class Product {
   @Column('text')
   gender: string;
 
+  @Column('text', { array: true, default: [] })
+  tags: string[];
+
   @BeforeInsert()
   generateSlug() {
     if (!this.slug) {
       this.slug = this.title;
     }
 
+    this.slug = this.slug
+      .toLowerCase()
+      .replaceAll(' ', '_')
+      .replaceAll("'", '');
+  }
+
+  @BeforeUpdate()
+  updateSlug() {
     this.slug = this.slug
       .toLowerCase()
       .replaceAll(' ', '_')
