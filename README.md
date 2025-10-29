@@ -10,6 +10,8 @@ Stack
 - Node
 - TypeScript
 - PostgreSQL
+- TypeORM
+- Docker
 
 ```
 docker compose up -d
