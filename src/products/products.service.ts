@@ -12,6 +12,8 @@ import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { isUUID } from 'class-validator';
+import { ErrorResponse } from 'src/common/interfaces/error-response.interface';
+import { ProductImage } from './entities/product-image.entity';
 
 @Injectable()
 export class ProductsService {
@@ -20,14 +22,25 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+
+    @InjectRepository(ProductImage)
+    private readonly productImageRepository: Repository<ProductImage>,
   ) {}
 
   async create(createProductDto: CreateProductDto) {
     try {
-      const product = this.productRepository.create(createProductDto);
+      const { images = [], ...rest } = createProductDto;
+
+      const product = this.productRepository.create({
+        ...rest,
+        images: images?.map((image) =>
+          this.productImageRepository.create({ url: image }),
+        ),
+      });
+
       await this.productRepository.save(product);
 
-      return product;
+      return { ...product, images: product.images?.map((img) => img.url) };
     } catch (error) {
       this.handleDBExceptions(error);
     }
@@ -39,9 +52,13 @@ export class ProductsService {
     const products = await this.productRepository.find({
       take: limit,
       skip: offset,
+      relations: { images: true },
     });
 
-    return products;
+    return products.map((product) => ({
+      ...product,
+      images: product.images?.map((img) => img.url),
+    }));
   }
 
   async findOne(term: string) {
@@ -57,6 +74,7 @@ export class ProductsService {
           title: term,
           slug: term,
         })
+        .leftJoinAndSelect('Product.images', 'productImage')
         .getOne();
     }
 
@@ -73,6 +91,7 @@ export class ProductsService {
     const product = await this.productRepository.preload({
       id,
       ...updateProductDto,
+      images: [],
     });
 
     if (!product) {
@@ -83,7 +102,7 @@ export class ProductsService {
       await this.productRepository.save(product);
       return product;
     } catch (error) {
-      this.handleDBExceptions(error);
+      this.handleDBExceptions(error as ErrorResponse);
     }
   }
 
@@ -96,7 +115,7 @@ export class ProductsService {
     return `Product with id ${id} has been removed`;
   }
 
-  private handleDBExceptions(error: any) {
+  private handleDBExceptions(error: ErrorResponse) {
     if (error.code === '23505') {
       throw new BadRequestException(error.detail);
     }
