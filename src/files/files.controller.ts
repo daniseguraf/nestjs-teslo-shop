@@ -5,6 +5,7 @@ import {
   Param,
   ParseFilePipe,
   Post,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -12,10 +13,15 @@ import { FilesService } from './files.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { fileNamer } from './helpers/fileNamer.helper';
+import type { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('files')
 export class FilesController {
-  constructor(private readonly filesService: FilesService) {}
+  constructor(
+    private readonly filesService: FilesService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('product')
   @UseInterceptors(
@@ -30,14 +36,18 @@ export class FilesController {
     @UploadedFile()
     file: Express.Multer.File,
   ) {
-    const secureUrl = `${file.filename}`;
+    const secureUrl = `${this.configService.get('HOST_API')}/files/product/${file.filename}`;
 
     return { secureUrl };
   }
 
-  @Get('/product/:imageId')
-  findProductImage(@Param('imageId') imageId: string) {
-    return this.filesService.findProductImage(imageId);
+  @Get('/product/:imageName')
+  findProductImage(
+    @Res() res: Response,
+    @Param('imageName') imageName: string,
+  ) {
+    const path = this.filesService.getImagePath(imageName);
+    res.sendFile(path);
   }
 }
 
