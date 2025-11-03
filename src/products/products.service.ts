@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -14,6 +13,7 @@ import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { isUUID } from 'class-validator';
 import { ErrorResponse } from 'src/common/interfaces/error-response.interface';
 import { ProductImage } from './entities/product-image.entity';
+import { handleDBErrors } from 'src/common/handleDBErrors';
 
 @Injectable()
 export class ProductsService {
@@ -44,7 +44,7 @@ export class ProductsService {
 
       return { ...product, images: product.images?.map((img) => img.url) };
     } catch (error) {
-      this.handleDBExceptions(error);
+      handleDBErrors(error);
     }
   }
 
@@ -127,7 +127,7 @@ export class ProductsService {
       await queryRunner.rollbackTransaction();
       await queryRunner.release();
 
-      this.handleDBExceptions(error as ErrorResponse);
+      handleDBErrors(error as ErrorResponse);
     }
   }
 
@@ -140,24 +140,13 @@ export class ProductsService {
     return `Product with id ${id} has been removed`;
   }
 
-  private handleDBExceptions(error: ErrorResponse) {
-    if (error.code === '23505') {
-      throw new BadRequestException(error.detail);
-    }
-
-    this.logger.error(error);
-    throw new InternalServerErrorException(
-      'Unexpected error, check server logs',
-    );
-  }
-
   async deleteAllProducts() {
     const query = this.productRepository.createQueryBuilder('product');
 
     try {
       return await query.delete().where({}).execute();
     } catch (error) {
-      this.handleDBExceptions(error as ErrorResponse);
+      handleDBErrors(error as ErrorResponse);
     }
   }
 }
