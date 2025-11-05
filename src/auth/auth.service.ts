@@ -33,8 +33,6 @@ export class AuthService {
   }
 
   async loginUser(loginUserDto: LoginUserDto) {
-    console.log(loginUserDto);
-
     const { email, password } = loginUserDto;
 
     const user = await this.userRepository.findOne({
@@ -43,11 +41,11 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials 1');
+      throw new UnauthorizedException('Not valid credentials - email');
     }
 
     if (!bcrypt.compareSync(password, user.password)) {
-      throw new UnauthorizedException('Invalid credentials 2');
+      throw new UnauthorizedException('Not valid credentials - password');
     }
 
     return user;
