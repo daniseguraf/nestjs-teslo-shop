@@ -31,9 +31,11 @@ export class AuthService {
           password: encryptedPassword,
         });
 
+      const token = this.getJwtToken({ id: userData.id });
+
       return {
         ...userData,
-        token: this.getJwtToken({ email: userData.email }),
+        token,
       };
     } catch (error) {
       handleDBErrors(error);
@@ -56,11 +58,9 @@ export class AuthService {
       throw new UnauthorizedException('Not valid credentials - password');
     }
 
-    return { ...user, token: this.getJwtToken({ email: user.email }) };
-  }
+    const token = this.getJwtToken({ id: user.id });
 
-  findAll() {
-    return `This action returns all auth`;
+    return { ...user, token };
   }
 
   private getJwtToken(payload: JwtPayload) {
