@@ -7,26 +7,34 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { handleDBErrors } from 'src/common/handleDBErrors';
 import * as bcrypt from 'bcrypt';
 import { LoginUserDto } from './dto/login-user.dto';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+
+    private readonly jwtService: JwtService,
   ) {}
 
   async createUser(createUserDto: CreateUserDto) {
     try {
-      const { password, ...rest } = createUserDto;
+      const { password, email, ...rest } = createUserDto;
       const encryptedPassword = bcrypt.hashSync(password, 10);
 
       const { password: userPassword, ...userData } =
         await this.userRepository.save({
           ...rest,
+          email: email.toLowerCase().trim(),
           password: encryptedPassword,
         });
 
-      return { ...userData };
+      return {
+        ...userData,
+        token: this.getJwtToken({ email: userData.email }),
+      };
     } catch (error) {
       handleDBErrors(error);
     }
@@ -37,7 +45,7 @@ export class AuthService {
 
     const user = await this.userRepository.findOne({
       where: { email },
-      select: { email: true, password: true },
+      select: { email: true, password: true, id: true },
     });
 
     if (!user) {
@@ -48,22 +56,16 @@ export class AuthService {
       throw new UnauthorizedException('Not valid credentials - password');
     }
 
-    return user;
+    return { ...user, token: this.getJwtToken({ email: user.email }) };
   }
 
   findAll() {
     return `This action returns all auth`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
+  private getJwtToken(payload: JwtPayload) {
+    const token = this.jwtService.sign(payload);
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+    return token;
   }
 }
