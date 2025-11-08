@@ -4,16 +4,16 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { User } from '../entities/user.entity';
 
-export const GetUser = createParamDecorator(
-  (data: keyof User | undefined, ctx: ExecutionContext): User | string => {
+export const GetRawHeaders = createParamDecorator(
+  (data: any, ctx: ExecutionContext) => {
     const req = ctx.switchToHttp().getRequest<Request>();
-    const user = req.user as User;
 
-    if (!user)
+    const rawHeaders = req.rawHeaders;
+
+    if (!rawHeaders)
       throw new InternalServerErrorException('User not found (request)');
 
-    return data ? (user[data] as any as string) : user;
+    return rawHeaders;
   },
 );

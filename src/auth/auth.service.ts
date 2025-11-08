@@ -1,6 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateAuthDto } from './dto/update-user.dto';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -24,6 +23,7 @@ export class AuthService {
       const { password, email, ...rest } = createUserDto;
       const encryptedPassword = bcrypt.hashSync(password, 10);
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password: userPassword, ...userData } =
         await this.userRepository.save({
           ...rest,

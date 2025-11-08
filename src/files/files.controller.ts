@@ -1,9 +1,7 @@
 import {
   Controller,
-  FileTypeValidator,
   Get,
   Param,
-  ParseFilePipe,
   Post,
   Res,
   UploadedFile,
