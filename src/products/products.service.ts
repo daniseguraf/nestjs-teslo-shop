@@ -14,6 +14,7 @@ import { isUUID } from 'class-validator';
 import { ErrorResponse } from 'src/common/interfaces/error-response.interface';
 import { ProductImage } from './entities/product-image.entity';
 import { handleDBErrors } from 'src/common/handleDBErrors';
+import { User } from 'src/auth/entities/user.entity';
 
 @Injectable()
 export class ProductsService {
@@ -29,7 +30,7 @@ export class ProductsService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: CreateProductDto, user: User) {
     try {
       const { images = [], ...rest } = createProductDto;
 
@@ -38,6 +39,7 @@ export class ProductsService {
         images: images?.map((image) =>
           this.productImageRepository.create({ url: image }),
         ),
+        user,
       });
 
       await this.productRepository.save(product);
@@ -89,7 +91,7 @@ export class ProductsService {
     return { ...product, images: product.images?.map((img) => img.url) };
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto) {
+  async update(id: string, updateProductDto: UpdateProductDto, user: User) {
     const { images, ...rest } = updateProductDto;
 
     const product = await this.productRepository.preload({
@@ -118,6 +120,7 @@ export class ProductsService {
         });
       }
 
+      product.user = user;
       await queryRunner.manager.save(product);
       await queryRunner.commitTransaction();
       await queryRunner.release();
